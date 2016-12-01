@@ -142,6 +142,16 @@ public abstract class VehicleMovement : MonoBehaviour
     }
     */
 
+    protected Vector3 Wander()
+    {
+        //calculates wandering variables
+        Vector3 wanderCenter = position + direction * 4f;
+        float wanderRadius = 3f;
+        float angle = Mathf.PerlinNoise(seed + Time.fixedTime, seed) * Mathf.PI * 3f;
+
+        //seeks position to wander to
+        return Seek(new Vector3(wanderCenter.x + wanderRadius * Mathf.Cos(angle), position.y, wanderCenter.z + wanderRadius * Mathf.Sin(angle)));
+    }
 
 
     /// <summary>
@@ -190,9 +200,8 @@ public abstract class VehicleMovement : MonoBehaviour
         position = gameObject.transform.position;
         velocity += acceleration * Time.deltaTime;
         velocity = Vector3.ClampMagnitude(velocity, maxSpeed);
-
+        position += velocity * Time.deltaTime;
         nextPos = position + transform.forward * maxSpeed * 0.7f;
-        //halfNextPos = position + transform.forward * maxSpeed * 0.7f;
     }
 
     /// <summary>
@@ -200,13 +209,16 @@ public abstract class VehicleMovement : MonoBehaviour
     /// </summary>
     void ApplyToTransform()
     {
-        GetComponent<CharacterController>().Move(velocity * Time.deltaTime);
+        if (GetComponent<CharacterController>())
+            GetComponent<CharacterController>().Move(velocity * Time.deltaTime);
+        else transform.position = position;
 
         direction = velocity.normalized;
         if (direction != Vector3.zero)
             //transform.right = direction;
             transform.forward = Vector3.Lerp(transform.forward, direction, Time.deltaTime * 100);
     }
+
 
 
     /// <summary>
