@@ -9,13 +9,15 @@ public class FlockerManager : AgentManager
     //the flock
     public int flockCount;
     private Flocker[] flock;
-    private Vector3[] goals;
+    private GameObject[] goals;
     private Obstacle[] obstacles;
 
     //flocking variables
     private Vector3 avgAlignment;
     private Vector3 avgPosition;
     private Vector3 currentGoal;
+
+    private float timer = 3;
 
     //for debugging
     public Material debugMaterial;
@@ -61,18 +63,13 @@ public class FlockerManager : AgentManager
         }
 
         //random goal generation, REPLACE
-        goals = new Vector3[10];
-        for (int i = 0; i < goals.Length; i++)
-        {
-            goals[i] = new Vector3(Random.Range(minBounds.x,maxBounds.x), 2, Random.Range(minBounds.z,maxBounds.z));
-            //print(goals[i]);
-        }
+        goals = GameObject.FindGameObjectsWithTag("Flower");
 
 
         //calculates variables
         CalcAverageAlignment();
         CalcAveragePos();
-        currentGoal = goals[Random.Range(0,goals.Length)];
+        currentGoal = goals[Random.Range(0,goals.Length)].transform.position;
         
     }
 
@@ -82,10 +79,16 @@ public class FlockerManager : AgentManager
         CalcAverageAlignment();
         CalcAveragePos();
 
-        //print("Goal: " + currentGoal);
 
-        if ((avgPosition-currentGoal).sqrMagnitude < 10)
-            currentGoal = goals[Random.Range(0, goals.Length)];
+        if (timer < 0)
+        {
+            currentGoal = goals[Random.Range(0, goals.Length)].transform.position;
+            timer = 3f;
+        }
+        else if ((avgPosition - currentGoal).sqrMagnitude < 5)
+        {
+            timer -= Time.deltaTime;
+        }
     }
 
     /// <summary>

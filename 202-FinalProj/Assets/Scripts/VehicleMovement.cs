@@ -199,6 +199,35 @@ public abstract class VehicleMovement : MonoBehaviour
         else return -transform.right * maxSpeed - velocity;
     }
 
+    /// <summary>
+    /// Avoids an obstacle
+    /// </summary>
+    protected Vector3 AvoidObstacle(Leader leader)
+    {
+        //gets the distance
+        Vector3 distance = leader.position- nextPos;
+        distance.y = 0;
+
+        //checks if obstacle is in front of vehicle
+        if (Vector3.Dot(distance, transform.forward) < 0)
+            return Vector3.zero;
+
+        //checks if will intersect obstacle
+        if (distance.sqrMagnitude > Mathf.Pow(leader.Radius + radius, 2))
+            return Vector3.zero;
+
+        //checks if too close to obstacle
+        if (distance.sqrMagnitude < Mathf.Pow(radius, 2))
+            return Flee(leader.position);
+
+        //get the dot product with right
+        float dotProd = Vector3.Dot(transform.right, distance);
+
+        if (dotProd < 0)
+            return transform.right * maxSpeed - velocity;
+        else return -transform.right * maxSpeed - velocity;
+    }
+
     protected Vector3 Wander()
     {
         //calculates wandering variables

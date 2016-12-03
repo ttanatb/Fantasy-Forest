@@ -28,8 +28,11 @@ public class Follower : VehicleMovement
     protected override void CalcSteringForces()
     {
         totalForce += Arrive(leader.FollowingPos) * seekingWeight;
-        totalForce += Separate(leader.followers);
 
+        if ((leader.Position - position).sqrMagnitude < 1)
+            totalForce += AvoidObstacle(leader) * obstacleWeight;
+
+        totalForce += Separate(leader.Followers) * separationWeight;
 
         totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
     }

@@ -42,6 +42,16 @@ public class Leader : VehicleMovement
         get { return followingPos; }
     }
 
+    public Follower[] Followers
+    {
+        get { return followers; }
+    }
+
+    public Vector3 Position
+    {
+        get { return position - posToCenter; }
+    }
+
     protected override void Start()
     {
         base.Start();
@@ -69,10 +79,9 @@ public class Leader : VehicleMovement
                 {
                     totalForce += AvoidObstacle(obs) * obstacleWeight;
                 }
+
                 totalForce += SteerInBounds(minBounds, maxBounds) * boundaryWeight;
-
                 UpdatePosBehind();
-
 
                 if (timer < 0)
                 {
@@ -82,6 +91,7 @@ public class Leader : VehicleMovement
                     animator.SetBool("Walk", false);
                 }
                 break;
+
             case State.Pause:
                 if (timer < 0)
                 {
