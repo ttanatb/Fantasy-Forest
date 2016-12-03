@@ -11,21 +11,24 @@ public abstract class VehicleMovement : MonoBehaviour
     protected Vector3 position = Vector3.zero;
     protected Vector3 velocity = Vector3.one;
     protected Vector3 nextPos;
-    private Vector3 direction;
+    protected Vector3 direction;
 
     protected Vector3 totalForce = Vector3.zero;
     protected float mass = 1f;
 
     protected float maxSpeed = 10f;
+    private float savedMaxSpeed;
     protected float maxForce = 5f;
     protected float radius;
+    protected Vector3 posToCenter;
 
     float seed;
     protected Vector3 minBounds;
     protected Vector3 maxBounds;
-    private Vector3 center;
+    private Vector3 terrainCenter;
 
     public Material debugMaterial;
+    private Vector3 farNextPos;
 
     //properties
     public float Radius
@@ -47,6 +50,16 @@ public abstract class VehicleMovement : MonoBehaviour
         seed = Random.Range(0, 1000f); //random seed for perlin noise's wandering
         direction.Set(Random.value, Random.value, Random.value);
         radius = 0.8f;
+
+        if (GetComponent<SphereCollider>())
+            posToCenter = position - transform.TransformPoint(GetComponent<SphereCollider>().center);
+        else if (GetComponent<CapsuleCollider>())
+            posToCenter = position - transform.TransformPoint(GetComponent<CapsuleCollider>().center);
+        else if (GetComponent<BoxCollider>())
+            posToCenter = position - transform.TransformPoint(GetComponent<BoxCollider>().center);
+        else if (GetComponent<CharacterController>())
+            posToCenter = position - transform.TransformPoint(GetComponent<CharacterController>().center);
+
     }
 
     /// <summary>
@@ -56,8 +69,10 @@ public abstract class VehicleMovement : MonoBehaviour
     {
         minBounds = terrainMin;
         maxBounds = terrainMax;
+        maxBounds.y = minBounds.y;
 
-        center = (maxBounds + minBounds) / 2;
+        terrainCenter = (maxBounds + minBounds) / 2;
+        //print("Min Bounds:" + minBounds + "Max Bounds:" + maxBounds + "Center:" + terrainCenter);
     }
 
     //method to override
@@ -70,6 +85,47 @@ public abstract class VehicleMovement : MonoBehaviour
         ApplyToAcceleration();
         UpdatePosition();
         ApplyToTransform();
+    }
+
+    /// <summary>
+    /// Applies to acc and resets everything to zero
+    /// </summary>
+    protected void ApplyToAcceleration()
+    {
+        acceleration *= 0;
+        acceleration = totalForce / mass;
+
+        totalForce *= 0;
+    }
+
+    /// <summary>
+    /// Applies to the kinematics
+    /// </summary>
+    void UpdatePosition()
+    {
+        position = gameObject.transform.position;
+        velocity += acceleration * Time.deltaTime;
+        velocity = Vector3.ClampMagnitude(velocity, maxSpeed);
+        position += velocity * Time.deltaTime;
+        nextPos = position + transform.forward * 4 * radius / maxSpeed - posToCenter;
+        farNextPos = position + transform.forward * maxSpeed - posToCenter;
+    }
+
+    /// <summary>
+    /// Apply to transform
+    /// </summary>
+    void ApplyToTransform()
+    {
+        if (GetComponent<CharacterController>())
+            GetComponent<CharacterController>().Move(velocity * Time.deltaTime);
+        else if (GetComponent<Rigidbody>())
+            GetComponent<Rigidbody>().MovePosition(position);
+        else transform.position = position;
+
+        direction = velocity.normalized;
+        if (direction != Vector3.zero)
+            //transform.right = direction;
+            transform.forward = Vector3.Lerp(transform.forward, direction, Time.deltaTime * 100);
     }
 
     /// <summary>
@@ -104,43 +160,44 @@ public abstract class VehicleMovement : MonoBehaviour
         return ((position - target.NextPos).normalized * maxSpeed - velocity);
     }
 
-    /*
+    protected Vector3 Arrive(Vector3 targetPos)
+    {
+        Vector3 dist = targetPos - position;
+        if (dist.sqrMagnitude < 2)
+        {
+            return dist - velocity;
+        }
+        else return ((targetPos - position).normalized * maxSpeed - velocity);
+    }
+
     /// <summary>
     /// Avoids an obstacle
     /// </summary>
     protected Vector3 AvoidObstacle(Obstacle obstacle)
     {
-        Vector3 avoid = Vector3.zero;
-
         //gets the distance
         Vector3 distance = obstacle.Pos - nextPos;
-        Vector3 actualDistance = obstacle.Pos - position;
+        distance.y = 0;
 
         //checks if obstacle is in front of vehicle
-        if (Vector3.Dot(obstacle.Pos - position, transform.forward) < 0)
-            return avoid;
+        if (Vector3.Dot(distance, transform.forward) < 0)
+            return Vector3.zero;
 
         //checks if will intersect obstacle
-        if (distance.magnitude > obstacle.Radius + radius)
-            return avoid;
+        if (distance.sqrMagnitude > Mathf.Pow(obstacle.Radius + radius, 2))
+            return Vector3.zero;
+
+        //checks if too close to obstacle
+        if (distance.sqrMagnitude < Mathf.Pow(radius, 2))
+            return Flee(obstacle.Pos);
 
         //get the dot product with right
-        float dotProd = Vector3.Dot(transform.right, actualDistance);
+        float dotProd = Vector3.Dot(transform.right, distance);
 
         if (dotProd < 0)
-            avoid += transform.right;
-        else avoid += -transform.right;
-
-        //get the dot product with up
-        dotProd = Vector3.Dot(transform.up, actualDistance);
-
-        if (dotProd < 0)
-            avoid += -transform.up;
-        else avoid += transform.up;
-
-        return (avoid).normalized * maxSpeed - velocity;
+            return transform.right * maxSpeed - velocity;
+        else return -transform.right * maxSpeed - velocity;
     }
-    */
 
     protected Vector3 Wander()
     {
@@ -159,10 +216,9 @@ public abstract class VehicleMovement : MonoBehaviour
     /// </summary>
     protected Vector3 SteerInBounds(Vector3 min, Vector3 max)
     {
-        if (nextPos.x > max.x || nextPos.x < min.x
-            || nextPos.y > max.y || nextPos.y < min.y
-            || nextPos.z > max.z || nextPos.z < min.z)
-            return Seek(center);
+        if (farNextPos.x > max.x || farNextPos.x < min.x
+            || farNextPos.z > max.z || farNextPos.z < min.z)
+            return Seek(terrainCenter);
 
         //return steering force
         return Vector3.zero;
@@ -171,70 +227,58 @@ public abstract class VehicleMovement : MonoBehaviour
     /// <summary>
     /// Steers to center (useful for when stuck in corner)
     /// </summary>
-    protected Vector3 SteerToCenter(Vector3 min, Vector3 max)
+    protected Vector3 SteerVertically(float min, float max)
     {
         //checks with position instead of next position
-        if (position.x > max.x || position.x < min.x || position.z < min.z || position.z > max.z)
+        if (nextPos.y > max || nextPos.y < min)
         {
-            return Seek(center);
+            Vector3 seekingPos = position;
+            seekingPos.y = (min + max) / 2;
+            return Seek(seekingPos);
         }
         else return Vector3.zero;
     }
 
-    /// <summary>
-    /// Applies to acc and resets everything to zero
-    /// </summary>
-    protected void ApplyToAcceleration()
+    void OnTriggerEnter(Collider collision)
     {
-        acceleration *= 0;
-        acceleration = totalForce / mass;
-
-        totalForce *= 0;
+        if (collision.gameObject.tag == "Bush")
+        {
+            savedMaxSpeed = maxSpeed;
+            maxSpeed *= 0.5f;
+        }
     }
 
-    /// <summary>
-    /// Applies to the kinematics
-    /// </summary>
-    void UpdatePosition()
+    void OnTriggerExit(Collider collision)
     {
-        position = gameObject.transform.position;
-        velocity += acceleration * Time.deltaTime;
-        velocity = Vector3.ClampMagnitude(velocity, maxSpeed);
-        position += velocity * Time.deltaTime;
-        nextPos = position + transform.forward * maxSpeed * 0.7f;
+        if (collision.gameObject.tag == "Bush")
+        {
+            maxSpeed = savedMaxSpeed;
+        }
+
     }
-
-    /// <summary>
-    /// Apply to transform
-    /// </summary>
-    void ApplyToTransform()
-    {
-        if (GetComponent<CharacterController>())
-            GetComponent<CharacterController>().Move(velocity * Time.deltaTime);
-        else transform.position = position;
-
-        direction = velocity.normalized;
-        if (direction != Vector3.zero)
-            //transform.right = direction;
-            transform.forward = Vector3.Lerp(transform.forward, direction, Time.deltaTime * 100);
-    }
-
-
 
     /// <summary>
     /// Method to draw debug lines
     /// </summary>
     protected virtual void OnRenderObject()
     {
-        if (Input.GetKey(KeyCode.D))
-        {
-            //draw forward line
-            debugMaterial.SetPass(0);
-            GL.Begin(GL.LINES);
-            GL.Color(Color.blue);
-            GL.Vertex(gameObject.transform.position);
-            GL.Vertex(nextPos);
-            GL.End();
-        }
+        //draw forward line
+        debugMaterial.SetPass(0);
+        GL.Begin(GL.LINES);
+        GL.Color(Color.blue);
+        GL.Vertex(position - posToCenter);
+        GL.Vertex(nextPos);
+        GL.End();
+
+        //debugMaterial.SetPass(0);
+        //GL.Begin(GL.LINES);
+        //for (int i = 0; i < 100; i++)
+        //{
+        //    float a = i / (float)100;
+        //    float angle = a * Mathf.PI * 2;
+        //    GL.Vertex(position - posToCenter);
+        //    GL.Vertex(position - posToCenter + new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius));
+        //}
+        //GL.End();
     }
 }

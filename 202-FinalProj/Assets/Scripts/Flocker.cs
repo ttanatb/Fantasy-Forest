@@ -9,7 +9,15 @@ public class Flocker : VehicleMovement
     //variables
     FlockerManager manager;
 
-    bool flocking;
+    //change to enum
+    bool flocking = true;
+
+    public float minFlightHeight = 0.3f;
+    public float maxFlightHeight = 3f;
+    private float flightHeight;
+
+    private float minY;
+    private float maxY;
 
     //weights
     public float seekWeight = 2f;
@@ -20,33 +28,54 @@ public class Flocker : VehicleMovement
     public float alignmentWeight = 0.4f;
     public float cohesionWeight = 1;
 
-    public float personalSpace = 3f;
+    public float personalSpace = 1f;
     private float personalSpaceSqr;
+
+    private Obstacle[] trees;
+    private TerrainData terrainData;
+
 
     /// <summary>
     /// Used like a constructor
     /// </summary>
-    public void Initialize(FlockerManager manager, Vector3 min, Vector3 max)
+    public void Initialize(FlockerManager manager, Vector3 min, Vector3 max, TerrainData terrainData)
     {
-        maxForce = 4f;
-        maxSpeed = 3f;
-        radius = 1;
         this.manager = manager;
         SetBounds(min, max);
-        flocking = true;
-        personalSpaceSqr = Mathf.Pow(personalSpace, 2);
+        this.terrainData = terrainData;
+    }
 
+    protected override void Start()
+    {
+        base.Start();
+        maxForce = 4f;
+        maxSpeed = 3f;
+        radius = 0.24f;
+
+        personalSpaceSqr = Mathf.Pow(personalSpace, 2);
 
         Animation anim = GetComponent<Animation>();
         foreach (AnimationState state in anim)
         {
-            state.speed = Random.Range(0.8f, 1.3f);
+            state.speed = Random.Range(1.3f, 1.8f);
         }
+
+        trees = manager.Obstacles;
     }
+
 
     protected override void CalcSteringForces()
     {
+
         totalForce += Seek(manager.CurrentGoal) * seekWeight;
+
+        foreach(Obstacle obs in trees)
+        {
+            totalForce += AvoidObstacle(obs) * obstacleWeight;
+        }
+
+        UpdateYBounds();
+        totalForce += SteerVertically(minY, maxY) * boundaryWeight;
 
         //calculate flocking forces
         totalForce += Separate(manager.Flockers) * separationWeight;                        //separate
@@ -57,41 +86,13 @@ public class Flocker : VehicleMovement
         totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
     }
 
-    /*
-    /// <summary>
-    /// Calculates where to steer towards
-    /// </summary>
-    protected override void CalcSteringForces()
+    void UpdateYBounds()
     {
-        //seeks the goal and steer in bounds
-        totalForce += SteerInBounds(minBounds, maxBounds) * boundaryWeight;
-
-        //search for an obstacle to avoid
-        Obstacle obstacleToAvoid = null;
-        float highest = float.MaxValue;
-        foreach(Obstacle ob in manager.Obstacles)
-        {
-            //compares with current highest
-            if ((position - ob.Pos).sqrMagnitude < highest)
-            {
-                obstacleToAvoid = ob;
-                highest = (position - ob.Pos).sqrMagnitude;
-            }
-        }
-
-        //avoids the highest 
-        if (obstacleToAvoid)
-            totalForce += AvoidObstacle(obstacleToAvoid) * obstacleWeight;
-
-        //separates, aligns, and coheres
-        totalForce += Separate(manager.Flockers) * separationWeight;
-        totalForce += (manager.AverageAlignment * maxSpeed - velocity) * alignmentWeight;
-        totalForce += Seek(manager.AveragePosition) * cohesionWeight;
-
-        //clamps
-        totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
+        flightHeight = terrainData.GetHeight((int)(position.x * terrainData.heightmapResolution / terrainData.size.x),
+            (int)(position.z * terrainData.heightmapResolution / terrainData.size.z));
+        minY = flightHeight + minFlightHeight;
+        maxY = flightHeight + maxFlightHeight;
     }
-    */
 
     /// <summary>
     /// Separate from other flockers
@@ -107,19 +108,13 @@ public class Flocker : VehicleMovement
             
             //gets the distance
             Vector3 dist = flocker.transform.position - position;
-            if (dist.sqrMagnitude > 0 && dist.sqrMagnitude < personalSpaceSqr)
+            float distSqrMag = dist.sqrMagnitude;
+            if (distSqrMag > 0 && distSqrMag < personalSpaceSqr)
             {
                 //if close enough add the opposite
-                separation += -dist;
+                separation += -(dist * (personalSpaceSqr / (personalSpaceSqr - distSqrMag)));
             }
         }
-
         return separation;
-        /*
-        //returns normalize or zero vector
-        if (separation == Vector3.zero)
-            return Vector3.zero;
-        else return separation.normalized;
-        */
     }
 }

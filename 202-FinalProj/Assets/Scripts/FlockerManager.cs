@@ -10,6 +10,7 @@ public class FlockerManager : AgentManager
     public int flockCount;
     private Flocker[] flock;
     private Vector3[] goals;
+    private Obstacle[] obstacles;
 
     //flocking variables
     private Vector3 avgAlignment;
@@ -40,25 +41,33 @@ public class FlockerManager : AgentManager
         get { return currentGoal; }
     }
 
+    public Obstacle[] Obstacles
+    {
+        get { return obstacles; }
+    }
+
     // Use this for initialization
     protected override void Start()
     {
         base.Start();
+        obstacles = FindObjectsOfType<Obstacle>();
+
         //positions the flockers
         flock = new Flocker[flockCount];
         for (int i = 0; i < flockCount; i++)
         {
             flock[i] = ((GameObject)Instantiate(agentPrefab, Vector3.one * i, Quaternion.identity)).GetComponent<Flocker>();
-            flock[i].Initialize(this, minBounds, maxBounds);
+            flock[i].Initialize(this, minBounds, maxBounds, terrainData);
         }
 
         //random goal generation, REPLACE
         goals = new Vector3[10];
         for (int i = 0; i < goals.Length; i++)
         {
-            goals[i] = new Vector3(Random.Range(minBounds.x,maxBounds.x), 0, Random.Range(minBounds.z,maxBounds.z));
-            print(goals[i]);
+            goals[i] = new Vector3(Random.Range(minBounds.x,maxBounds.x), 2, Random.Range(minBounds.z,maxBounds.z));
+            //print(goals[i]);
         }
+
 
         //calculates variables
         CalcAverageAlignment();
