@@ -57,7 +57,7 @@ public class Leader : VehicleMovement
         base.Start();
         SetBounds(Vector3.zero, FindObjectOfType<Terrain>().terrainData.size);
         maxForce = 4f;
-        maxSpeed = 2f;
+        maxSpeed = 1.5f;
         radius = 1.4f;
         timer = Random.Range(minTimeToPause, maxTimeToPause);
         animator = GetComponent<Animator>();
@@ -108,6 +108,8 @@ public class Leader : VehicleMovement
             default: break;
         }
 
+        position.y = 0;
+
         timer -= Time.deltaTime;
     }
 
@@ -118,9 +120,10 @@ public class Leader : VehicleMovement
 
     private void UpdatePosBehind()
     {
-        followingPos = position - transform.forward * 2f;
-        followingPos.y = terrainData.GetHeight((int)(followingPos.x * terrainData.heightmapResolution / terrainData.size.x),
-            (int)(followingPos.z * terrainData.heightmapResolution / terrainData.size.z));
+        followingPos = position - transform.forward * 1.8f;
+        //followingPos.y = terrainData.GetHeight((int)(followingPos.x * terrainData.heightmapResolution / terrainData.size.x),
+        //    (int)(followingPos.z * terrainData.heightmapResolution / terrainData.size.z));
+        followingPos.y = 0;
     }
 
     protected override void OnRenderObject()

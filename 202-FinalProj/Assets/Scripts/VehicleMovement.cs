@@ -30,6 +30,8 @@ public abstract class VehicleMovement : MonoBehaviour
     public Material debugMaterial;
     protected Vector3 farNextPos;
 
+    protected bool freezeY = false;
+
     //properties
     public float Radius
     {
@@ -93,6 +95,8 @@ public abstract class VehicleMovement : MonoBehaviour
     protected void ApplyToAcceleration()
     {
         totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
+        if (freezeY)
+            totalForce.y = 0;
 
         acceleration *= 0;
         acceleration = totalForce / mass;
@@ -126,8 +130,7 @@ public abstract class VehicleMovement : MonoBehaviour
 
         direction = velocity.normalized;
         if (direction != Vector3.zero)
-            //transform.right = direction;
-            transform.forward = Vector3.Lerp(transform.forward, direction, Time.deltaTime * 100);
+            transform.forward = Vector3.Lerp(transform.forward, direction, Time.deltaTime * 6f);
     }
 
     /// <summary>
@@ -165,11 +168,12 @@ public abstract class VehicleMovement : MonoBehaviour
     protected Vector3 Arrive(Vector3 targetPos)
     {
         Vector3 dist = targetPos - position;
+        dist.y = 0;
         if (dist.sqrMagnitude < 2)
         {
-            return dist - velocity;
+            return dist * 0.9f - velocity;
         }
-        else return ((targetPos - position).normalized * maxSpeed - velocity);
+        else return (dist.normalized * maxSpeed - velocity);
     }
 
     /// <summary>

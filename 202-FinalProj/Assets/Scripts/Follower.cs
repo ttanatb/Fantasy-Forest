@@ -12,27 +12,55 @@ public class Follower : VehicleMovement
     public float obstacleWeight = 1;
     public float boundaryWeight = 1;
 
-    public float personalSpace = 1;
+    public float personalSpace = 1.8f;
     private float personalSpaceSqr;
+
+    private Rigidbody rigidBody;
+    private Animator animator;
 
     protected override void Start()
     {
         base.Start();
 
-        maxForce = 4f;
+        maxForce = 3f;
         maxSpeed = 2f;
         radius = 1f;
         personalSpaceSqr = Mathf.Pow(personalSpace, 2);
+
+        rigidBody = GetComponent<Rigidbody>();
+        freezeY = true;
+        animator = GetComponent<Animator>();
     }
 
     protected override void CalcSteringForces()
     {
-        totalForce += Arrive(leader.FollowingPos) * seekingWeight;
+        position.y = 0;
 
-        if ((leader.Position - position).sqrMagnitude < 1)
-            totalForce += AvoidObstacle(leader) * obstacleWeight;
+        if ((position - leader.FollowingPos).sqrMagnitude < 0.9f)
+            maxSpeed = Mathf.Lerp(maxSpeed, 0, Time.deltaTime);
+        else
+        {
+            maxSpeed = Mathf.Lerp(maxSpeed, 2, Time.deltaTime);
+            totalForce += Arrive(leader.FollowingPos) * seekingWeight;
+        }
+
+
+        if ((leader.Position - position).sqrMagnitude < 3)
+            totalForce += Flee(leader.Position) * obstacleWeight;
 
         totalForce += Separate(leader.Followers) * separationWeight;
+
+
+        if (totalForce.magnitude < 0.01f)
+        {
+            totalForce = Vector3.zero;
+            animator.SetBool("Walk", false);
+        }
+        else
+        {
+            animator.SetBool("Walk", true);
+            rigidBody.constraints = RigidbodyConstraints.None;
+        }
     }
 
     protected Vector3 Separate(Follower[] followers)
@@ -44,15 +72,20 @@ public class Follower : VehicleMovement
             //checks if this flocker
             if (follower == this) continue;
 
+
             //gets the distance
-            Vector3 dist = follower.transform.position - position;
+            Vector3 dist = position - follower.transform.position;
+
+            if (Vector3.Dot(dist, transform.forward) > 0)
+                continue;
+
             float distSqrMag = dist.sqrMagnitude;
             if (distSqrMag > 0 && distSqrMag < personalSpaceSqr)
             {
                 //if close enough add the opposite
-                separation += -(dist * (personalSpaceSqr / (personalSpaceSqr - distSqrMag)));
+                separation += (dist).normalized * personalSpace;
             }
         }
-        return separation;
+        return separation.normalized * personalSpace;
     }
 }
