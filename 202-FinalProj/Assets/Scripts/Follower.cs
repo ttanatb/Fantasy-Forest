@@ -33,8 +33,6 @@ public class Follower : VehicleMovement
             totalForce += AvoidObstacle(leader) * obstacleWeight;
 
         totalForce += Separate(leader.Followers) * separationWeight;
-
-        totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
     }
 
     protected Vector3 Separate(Follower[] followers)

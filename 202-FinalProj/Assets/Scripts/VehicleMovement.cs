@@ -28,7 +28,7 @@ public abstract class VehicleMovement : MonoBehaviour
     private Vector3 terrainCenter;
 
     public Material debugMaterial;
-    private Vector3 farNextPos;
+    protected Vector3 farNextPos;
 
     //properties
     public float Radius
@@ -92,6 +92,8 @@ public abstract class VehicleMovement : MonoBehaviour
     /// </summary>
     protected void ApplyToAcceleration()
     {
+        totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
+
         acceleration *= 0;
         acceleration = totalForce / mass;
 
@@ -291,13 +293,17 @@ public abstract class VehicleMovement : MonoBehaviour
     /// </summary>
     protected virtual void OnRenderObject()
     {
-        //draw forward line
-        debugMaterial.SetPass(0);
-        GL.Begin(GL.LINES);
-        GL.Color(Color.blue);
-        GL.Vertex(position - posToCenter);
-        GL.Vertex(nextPos);
-        GL.End();
+        if (debugMaterial)
+        {
+            //draw forward line
+            debugMaterial.SetPass(0);
+            GL.Begin(GL.LINES);
+            GL.Color(Color.blue);
+            GL.Vertex(position - posToCenter);
+            GL.Vertex(nextPos);
+            GL.End();
+        }
+
 
         //debugMaterial.SetPass(0);
         //GL.Begin(GL.LINES);

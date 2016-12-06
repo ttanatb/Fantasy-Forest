@@ -109,7 +109,6 @@ public class Leader : VehicleMovement
         }
 
         timer -= Time.deltaTime;
-        totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
     }
 
     private void CheckIfCloseToButterfly()

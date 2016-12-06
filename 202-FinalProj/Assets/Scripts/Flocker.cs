@@ -81,9 +81,6 @@ public class Flocker : VehicleMovement
         totalForce += Separate(manager.Flockers) * separationWeight;                        //separate
         totalForce += (manager.AverageAlignment * maxSpeed - velocity) * alignmentWeight;   //align
         totalForce += Seek(manager.AveragePosition) * cohesionWeight;                       //cohesion
-
-        //clamps total force
-        totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
     }
 
     void UpdateYBounds()
