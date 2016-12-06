@@ -64,7 +64,7 @@ public class Path : MonoBehaviour
                 continue;
 
             float distMag = distVect.magnitude;
-            if (distMag > vertex.Radius && distMag < 10 && distMag < dist)
+            if (distMag > vertex.Radius && distMag < 20 && distMag < dist)
             {
                 
                 dist = distMag;

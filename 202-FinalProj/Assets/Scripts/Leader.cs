@@ -57,7 +57,7 @@ public class Leader : VehicleMovement
         base.Start();
         SetBounds(Vector3.zero, FindObjectOfType<Terrain>().terrainData.size);
         maxForce = 4f;
-        maxSpeed = 1.5f;
+        maxSpeed = 2f;
         radius = 1.4f;
         timer = Random.Range(minTimeToPause, maxTimeToPause);
         animator = GetComponent<Animator>();
@@ -120,7 +120,7 @@ public class Leader : VehicleMovement
 
     private void UpdatePosBehind()
     {
-        followingPos = position - transform.forward * 1.8f;
+        followingPos = Vector3.Lerp(followingPos, position - transform.forward * 3f, Time.deltaTime * 5);
         //followingPos.y = terrainData.GetHeight((int)(followingPos.x * terrainData.heightmapResolution / terrainData.size.x),
         //    (int)(followingPos.z * terrainData.heightmapResolution / terrainData.size.z));
         followingPos.y = 0;

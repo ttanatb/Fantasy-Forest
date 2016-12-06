@@ -40,8 +40,8 @@ public class Follower : VehicleMovement
             maxSpeed = Mathf.Lerp(maxSpeed, 0, Time.deltaTime);
         else
         {
-            maxSpeed = Mathf.Lerp(maxSpeed, 2, Time.deltaTime);
             totalForce += Arrive(leader.FollowingPos) * seekingWeight;
+            maxSpeed = Mathf.Lerp(maxSpeed, 2, Time.deltaTime);
         }
 
 
@@ -49,6 +49,8 @@ public class Follower : VehicleMovement
             totalForce += Flee(leader.Position) * obstacleWeight;
 
         totalForce += Separate(leader.Followers) * separationWeight;
+
+
 
 
         if (totalForce.magnitude < 0.01f)
@@ -59,7 +61,6 @@ public class Follower : VehicleMovement
         else
         {
             animator.SetBool("Walk", true);
-            rigidBody.constraints = RigidbodyConstraints.None;
         }
     }
 
