@@ -19,8 +19,8 @@ public class Path : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //foreach (PathVertex v in vertices)
-        //Debug.DrawLine(v.Position, v.Segment + v.Position);
+        foreach (PathVertex v in vertices)
+            Debug.DrawLine(v.Position, v.Segment + v.Position);
     }
 
     public Vector3 SteerToClosestPath(Vector3 futurePosition)
@@ -49,7 +49,7 @@ public class Path : MonoBehaviour
             //if (vertex.gameObject.name == "Path 1")
             //    print(vertex.gameObject.name + ": " + projection + " " + vertex.Magnitude);
 
-            if (projection > vertex.Magnitude || projection < 0)
+            if (projection > vertex.Magnitude + 1 || projection < -1)
                 continue;
             //Debug.DrawLine(vertex.Position, hypothenuse + vertex.Position);
 
@@ -64,7 +64,7 @@ public class Path : MonoBehaviour
                 continue;
 
             float distMag = distVect.magnitude;
-            if (distMag > vertex.Radius && distMag < 20 && distMag < dist)
+            if (distMag > vertex.Radius && distMag < 30 && distMag < dist)
             {
                 
                 dist = distMag;

@@ -43,6 +43,7 @@ public class PathVertex : MonoBehaviour
 
     void Start()
     {
+        GetComponent<MeshRenderer>().enabled = false;
         radiusSqr = Mathf.Pow(radius, 2);
     }
 
