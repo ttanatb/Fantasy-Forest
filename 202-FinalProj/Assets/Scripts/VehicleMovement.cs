@@ -96,7 +96,9 @@ public abstract class VehicleMovement : MonoBehaviour
     {
         totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
         if (freezeY)
+        {
             totalForce.y = 0;
+        }
 
         acceleration *= 0;
         acceleration = totalForce / mass;
@@ -109,10 +111,14 @@ public abstract class VehicleMovement : MonoBehaviour
     /// </summary>
     void UpdatePosition()
     {
+
         position = gameObject.transform.position;
         velocity += acceleration * Time.deltaTime;
         velocity = Vector3.ClampMagnitude(velocity, maxSpeed);
         position += velocity * Time.deltaTime;
+        if (freezeY)
+            position.y = 0;
+
         nextPos = position + transform.forward * 4 * radius / maxSpeed - posToCenter;
         farNextPos = position + transform.forward * maxSpeed - posToCenter;
     }
@@ -144,7 +150,7 @@ public abstract class VehicleMovement : MonoBehaviour
     /// <summary>
     /// Seeks the target's next position
     /// </summary>
-    protected Vector3 Persue(VehicleMovement target)
+    protected Vector3 Pursue(VehicleMovement target)
     {
         return ((target.NextPos - position).normalized * maxSpeed - velocity);
     }
