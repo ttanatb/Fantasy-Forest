@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
-using System.Collections;
 
+/// <summary>
+/// Abstract class for scene managers
+/// </summary>
 public abstract class AgentManager : MonoBehaviour
 {
     public GameObject agentPrefab;

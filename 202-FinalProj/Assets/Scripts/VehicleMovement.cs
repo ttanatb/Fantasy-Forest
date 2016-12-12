@@ -17,7 +17,7 @@ public abstract class VehicleMovement : MonoBehaviour
     protected float mass = 1f;
 
     protected float maxSpeed = 10f;
-    private float savedMaxSpeed;
+    protected float savedMaxSpeed;
     protected float maxForce = 5f;
     protected float radius;
     protected Vector3 posToCenter;
@@ -49,9 +49,7 @@ public abstract class VehicleMovement : MonoBehaviour
         //initializes variables
         position = gameObject.transform.position;
         velocity = Vector3.zero;
-        seed = Random.Range(0, 1000f); //random seed for perlin noise's wandering
-        direction.Set(Random.value, Random.value, Random.value);
-        radius = 0.8f;
+        savedMaxSpeed = maxSpeed;
 
         if (GetComponent<SphereCollider>())
             posToCenter = position - transform.TransformPoint(GetComponent<SphereCollider>().center);
@@ -111,7 +109,6 @@ public abstract class VehicleMovement : MonoBehaviour
     /// </summary>
     void UpdatePosition()
     {
-
         position = gameObject.transform.position;
         velocity += acceleration * Time.deltaTime;
         velocity = Vector3.ClampMagnitude(velocity, maxSpeed);
@@ -160,7 +157,9 @@ public abstract class VehicleMovement : MonoBehaviour
     /// </summary>
     protected Vector3 Flee(Vector3 targetPos)
     {
-        return ((position - targetPos).normalized * maxSpeed - velocity);
+        Vector3 dist = position - targetPos;
+        dist.y = 0;
+        return ((dist).normalized * maxSpeed - velocity);
     }
 
     /// <summary>
@@ -217,7 +216,7 @@ public abstract class VehicleMovement : MonoBehaviour
     protected Vector3 AvoidObstacle(Leader leader)
     {
         //gets the distance
-        Vector3 distance = leader.position- nextPos;
+        Vector3 distance = leader.position - nextPos;
         distance.y = 0;
 
         //checks if obstacle is in front of vehicle
@@ -265,6 +264,27 @@ public abstract class VehicleMovement : MonoBehaviour
         return Vector3.zero;
     }
 
+    protected Vector3 SteerInwards()
+    {
+        Vector3 max = maxBounds * .8f;
+        Vector3 min = maxBounds - max;
+
+
+        if (position.x > max.x || position.z > max.z ||position.x < min.x || position.z < min.z)
+            return (terrainCenter - position);
+        else return Vector3.zero;
+
+        //if (position.x > max.x)
+        //    return Seek(terrainCenter) * (position.x - max.x);
+        //else if (position.z > max.z)
+        //    return Seek(terrainCenter) * (position.z - max.z);
+        //else if (position.x < min.x)
+        //    return Seek(terrainCenter) * (min.x - position.x);
+        //else if (position.z < min.x)
+        //    return Seek(terrainCenter) * (min.z - position.z);
+        //else return Vector3.zero;
+    }
+
     /// <summary>
     /// Steers to center (useful for when stuck in corner)
     /// </summary>
@@ -284,8 +304,7 @@ public abstract class VehicleMovement : MonoBehaviour
     {
         if (collision.gameObject.tag == "Bush")
         {
-            savedMaxSpeed = maxSpeed;
-            maxSpeed *= 0.5f;
+            maxSpeed = savedMaxSpeed * 0.5f;
         }
     }
 
@@ -297,7 +316,8 @@ public abstract class VehicleMovement : MonoBehaviour
         }
 
     }
-
+    
+    /*
     /// <summary>
     /// Method to draw debug lines
     /// </summary>
@@ -326,4 +346,5 @@ public abstract class VehicleMovement : MonoBehaviour
         //}
         //GL.End();
     }
+    */
 }

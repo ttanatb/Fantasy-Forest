@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
-using System.Collections;
 
+/// <summary>
+/// Helper class for obstacles
+/// </summary>
 public class Obstacle : MonoBehaviour
 {
     private float radius;

@@ -11,6 +11,7 @@ public class FlockerManager : AgentManager
     private Flocker[] flock;
     private GameObject[] goals;
     private Obstacle[] obstacles;
+    private GameObject[] spiders;
 
     //flocking variables
     private Vector3 avgAlignment;
@@ -48,11 +49,19 @@ public class FlockerManager : AgentManager
         get { return obstacles; }
     }
 
+    public GameObject[] Spiders
+    {
+        get { return spiders; }
+    }
+
     // Use this for initialization
     protected override void Start()
     {
         base.Start();
         obstacles = FindObjectsOfType<Obstacle>();
+        spiders = GameObject.FindGameObjectsWithTag("Spider");
+        goals = GameObject.FindGameObjectsWithTag("Flower");
+        currentGoal = goals[Random.Range(0, goals.Length)].transform.position;
 
         //positions the flockers
         flock = new Flocker[flockCount];
@@ -62,15 +71,9 @@ public class FlockerManager : AgentManager
             flock[i].Initialize(this, minBounds, maxBounds, terrainData);
         }
 
-        //random goal generation, REPLACE
-        goals = GameObject.FindGameObjectsWithTag("Flower");
-
-
         //calculates variables
         CalcAverageAlignment();
         CalcAveragePos();
-        currentGoal = goals[Random.Range(0,goals.Length)].transform.position;
-        
     }
 
     // Update is called once per frame
@@ -79,13 +82,15 @@ public class FlockerManager : AgentManager
         CalcAverageAlignment();
         CalcAveragePos();
 
-
         if (timer < 0)
         {
             currentGoal = goals[Random.Range(0, goals.Length)].transform.position;
             timer = 3f;
         }
-        else if ((avgPosition - currentGoal).sqrMagnitude < 5)
+
+        Vector3 dist = avgPosition - currentGoal;
+        dist.y = 0;
+        if (dist.sqrMagnitude < 5)
         {
             timer -= Time.deltaTime;
         }
@@ -96,12 +101,11 @@ public class FlockerManager : AgentManager
     /// </summary>
     private void CalcAverageAlignment()
     {
-        //normalizes all the forwards
-
         avgAlignment = Vector3.zero;
         foreach (Flocker flocker in flock)
         {
-            avgAlignment += flocker.transform.forward;
+            if (flocker.Flocking)
+                avgAlignment += flocker.transform.forward;
         }
 
         avgAlignment = avgAlignment.normalized;
@@ -112,18 +116,21 @@ public class FlockerManager : AgentManager
     /// </summary>
     private void CalcAveragePos()
     {
-        //averages all the position
-
+        int count = 0;
         avgPosition = Vector3.zero;
         foreach (Flocker flocker in flock)
         {
-            avgPosition += flocker.transform.position;
+            if (flocker.Flocking)
+            {
+                count++;
+                avgPosition += flocker.transform.position;
+            }
         }
-
-        avgPosition /= flock.Length;
+        if (count > 0)
+            avgPosition /= flock.Length;
     }
 
-
+    /*
     /// <summary>
     /// Draws the average position, average alignment, and goal
     /// </summary>
@@ -147,4 +154,5 @@ public class FlockerManager : AgentManager
         }
         GL.End();
     }
+    */
 }

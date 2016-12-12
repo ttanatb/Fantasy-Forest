@@ -10,7 +10,9 @@ public class Flocker : VehicleMovement
     FlockerManager manager;
 
     //change to enum
-    bool flocking = true;
+    private enum State { Flocking, Fleeing };
+
+    private State state = State.Flocking;
 
     public float minFlightHeight = 0.3f;
     public float maxFlightHeight = 3f;
@@ -31,9 +33,24 @@ public class Flocker : VehicleMovement
     public float personalSpace = 1f;
     private float personalSpaceSqr;
 
+    private GameObject[] spiders;
+    private GameObject targetToFlee;
+
+    public float fleeRadius;
+    private float fleeRadiusSqr;
+
     private Obstacle[] trees;
     private TerrainData terrainData;
 
+    //property
+    public bool Flocking
+    {
+        get
+        {
+            if (state == State.Flocking) return true;
+            else return false;
+        }
+    }
 
     /// <summary>
     /// Used like a constructor
@@ -61,40 +78,106 @@ public class Flocker : VehicleMovement
         }
 
         trees = manager.Obstacles;
+        spiders = manager.Spiders;
+        fleeRadiusSqr = Mathf.Pow(fleeRadius, 2);
+        minY = 1 + minFlightHeight;
+        maxY = 2 + maxFlightHeight;
     }
 
 
     protected override void CalcSteringForces()
     {
+        switch (state)
+        {
+            //flocks to a goal
+            case State.Flocking:
+                totalForce += Seek(manager.CurrentGoal) * seekWeight;
 
-        totalForce += Seek(manager.CurrentGoal) * seekWeight;
+                totalForce += Separate(manager.Flockers) * separationWeight;                        //separate
+                totalForce += (manager.AverageAlignment * maxSpeed - velocity) * alignmentWeight;   //align
+                totalForce += Seek(manager.AveragePosition) * cohesionWeight;                       //cohesion
 
+                CheckSpiders();
+                break;
+            //flees from spider
+            case State.Fleeing:
+                foreach (GameObject spider in spiders)
+                {
+                    if (spider)
+                        totalForce += Flee(spider.transform.position) * seekWeight;
+                }
+                CheckFarEnough();
+                break;
+        }
+
+        //avoid trees
         foreach(Obstacle obs in trees)
         {
             totalForce += AvoidObstacle(obs) * obstacleWeight;
         }
 
-        UpdateYBounds();
+        //UpdateYBounds();
+        
+        //steer vertical bounds
         totalForce += SteerVertically(minY, maxY) * boundaryWeight;
 
-        //calculate flocking forces
-        totalForce += Separate(manager.Flockers) * separationWeight;                        //separate
-        totalForce += (manager.AverageAlignment * maxSpeed - velocity) * alignmentWeight;   //align
-        totalForce += Seek(manager.AveragePosition) * cohesionWeight;                       //cohesion
+        //clamp
+        totalForce = Vector3.ClampMagnitude(totalForce, maxForce);
     }
 
-    void UpdateYBounds()
+    /// <summary>
+    /// Check if close enoug 
+    /// </summary>
+    private void CheckSpiders()
+    {
+        foreach(GameObject spider in spiders)
+        {
+            if (spider)
+            {
+                Vector3 dist = spider.transform.position - transform.position - posToCenter;
+                dist.y = 0;
+
+                if (dist.sqrMagnitude < fleeRadiusSqr && dist.magnitude < fleeRadius)
+                {
+                    state = State.Fleeing;
+                    return;
+                }
+            }
+        }
+    }
+    
+    //check if far enough from spider
+    private void CheckFarEnough()
+    {
+        foreach (GameObject spider in spiders)
+        {
+            if (spider)
+            {
+                Vector3 dist = spider.transform.position - transform.position - posToCenter;
+                dist.y = 0;
+
+                if (dist.sqrMagnitude < fleeRadiusSqr && dist.magnitude < fleeRadius)
+                    return;
+            }
+        }
+        state = State.Flocking;
+    }
+
+    /*
+     * For bumpy heightmaps
+    private void UpdateYBounds()
     {
         flightHeight = terrainData.GetHeight((int)(position.x * terrainData.heightmapResolution / terrainData.size.x),
             (int)(position.z * terrainData.heightmapResolution / terrainData.size.z));
-        minY = flightHeight + minFlightHeight;
-        maxY = flightHeight + maxFlightHeight;
+        minY = 1 + minFlightHeight;
+        maxY = 2 + maxFlightHeight;
     }
+    */
 
     /// <summary>
     /// Separate from other flockers
     /// </summary>
-    protected Vector3 Separate(Flocker[] flockers)
+    private Vector3 Separate(Flocker[] flockers)
     {
         Vector3 separation = Vector3.zero;
 

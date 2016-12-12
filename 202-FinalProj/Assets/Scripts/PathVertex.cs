@@ -1,8 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+/// <summary>
+/// The helper class for the path
+/// </summary>
 public class PathVertex : MonoBehaviour
 {
+    //variables
     private PathVertex nextVertex;
     private Vector3 segment;
     private Vector3 unitVector;
@@ -12,6 +16,7 @@ public class PathVertex : MonoBehaviour
     private float radiusSqr;
     private float magnitude;
 
+    //properties
     public Vector3 Position { get { return transform.position; } }
     public Vector3 Segment { get { return segment; } }
     public Vector3 UnitVector { get { return unitVector; } }
@@ -24,10 +29,10 @@ public class PathVertex : MonoBehaviour
     {
         count++;
         index = count;
-
         gameObject.name = "Path " + index;
     }
 
+    //for initialization
     public void SetNextVertex(PathVertex nextPathVertex)
     {
         nextVertex = nextPathVertex;
@@ -38,17 +43,12 @@ public class PathVertex : MonoBehaviour
 
         magnitude = segment.magnitude;
         unitVector = segment.normalized;
-
     }
 
+    // more initialization
     void Start()
     {
         GetComponent<MeshRenderer>().enabled = false;
         radiusSqr = Mathf.Pow(radius, 2);
-    }
-
-    void Update()
-    {
-        //Debug.DrawLine(transform.position, transform.right * radius + transform.position);
     }
 }

@@ -1,14 +1,18 @@
 ﻿using UnityEngine;
-using System.Collections;
 
+/// <summary>
+/// Leader, spider queens
+/// </summary>
 public class Leader : VehicleMovement
 {
-    enum State { Wander, Pause, Seek, Flee };
+    //variables
+    enum State { Wander, Pause, Flee };
 
     public float seekingWeight = 1;
     public float wanderingWeight = 1;
     public float obstacleWeight = 1;
     public float boundaryWeight = 1;
+    public float fleeingWeight = 1;
 
     private Vector3 followingPos;
     private TerrainData terrainData;
@@ -22,17 +26,23 @@ public class Leader : VehicleMovement
     public float maxTimeToPause = 10;
 
     private State state = State.Wander;
-    private Flocker[] butterflies;
     private Obstacle[] trees;
     private Follower[] followers;
+    private GameObject[] humans;
+
+    public float fleeRadius;
+    private float fleeRadiusSqr;
 
     private Animator animator;
+    private float savedAnimSpeed;
+    RigidbodyConstraints constraints;
 
-    public bool Seeking
+    //properties
+    public bool Fleeing
     {
         get
         {
-            if (state == State.Seek) return true;
+            if (state == State.Flee) return true;
             else return false;
         }
     }
@@ -52,37 +62,42 @@ public class Leader : VehicleMovement
         get { return position - posToCenter; }
     }
 
+    //initialization
     protected override void Start()
     {
-        base.Start();
         SetBounds(Vector3.zero, FindObjectOfType<Terrain>().terrainData.size);
-        maxForce = 4f;
-        maxSpeed = 2f;
+        maxForce = 5f;
+        maxSpeed = 2.75f;
         radius = 1.4f;
         timer = Random.Range(minTimeToPause, maxTimeToPause);
         animator = GetComponent<Animator>();
+        savedAnimSpeed = 1.5f;
+        animator.speed = savedAnimSpeed;
 
-        butterflies = FindObjectsOfType<Flocker>();
         trees = FindObjectsOfType<Obstacle>();
-        terrainData = FindObjectOfType<Terrain>().terrainData;
+        terrainData = GameObject.Find("Terrain").GetComponent<Terrain>().terrainData;
+        SetBounds(Vector3.zero, terrainData.size);
         followers = FindObjectsOfType<Follower>();
+        humans = GameObject.FindGameObjectsWithTag("Human");
+        fleeRadiusSqr = Mathf.Pow(fleeRadius, 2);
+        constraints = GetComponent<Rigidbody>().constraints;
+
+        base.Start();
     }
 
     protected override void CalcSteringForces()
     {
+        //locks pos
+        position.y = 0;
+
         switch (state)
         {
+            //wandering
             case State.Wander:
-
                 totalForce += Wander() * wanderingWeight;
-                foreach(Obstacle obs in trees)
-                {
-                    totalForce += AvoidObstacle(obs) * obstacleWeight;
-                }
 
-                totalForce += SteerInBounds(minBounds, maxBounds) * boundaryWeight;
-                UpdatePosBehind();
-
+                //timer to pause
+                timer -= Time.deltaTime;
                 if (timer < 0)
                 {
                     state = State.Pause;
@@ -90,42 +105,103 @@ public class Leader : VehicleMovement
                     GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
                     animator.SetBool("Walk", false);
                 }
-                break;
 
+                CheckIfCloseToHuman();
+                goto default;
+
+            //pausing
             case State.Pause:
+                
+                //timer to walk again
+                timer -= Time.deltaTime;
                 if (timer < 0)
                 {
-                    GetComponent<Rigidbody>().constraints = RigidbodyConstraints.None;
+                    GetComponent<Rigidbody>().constraints = constraints;
                     state = State.Wander;
                     timer = Random.Range(minTimeToPause, maxTimeToPause);
                     animator.SetBool("Walk", true);
                 }
+
+                CheckIfCloseToHuman();
                 break;
-            case State.Seek:
-                break;
+
+            //increased speed to flee from humans
             case State.Flee:
+                //calculates closest human to flee from
+                int index = -1;
+                float closestDist = float.MaxValue;
+                for (int i = 0; i < humans.Length; i++)
+                {
+                    Vector3 dist = humans[i].transform.position - nextPos;
+                    dist.y = 0;
+
+                    if (dist.sqrMagnitude < fleeRadiusSqr * 2.25f  && dist.sqrMagnitude < Mathf.Pow(closestDist, 2))
+                    {
+                        float distMag = dist.magnitude;
+                        if (distMag < fleeRadius * 1.5f && distMag < closestDist)
+                        {
+                            closestDist = distMag;
+                            index = i;
+                        }
+                    }
+                }
+                if (index != -1)
+                    totalForce += Flee(humans[index].transform.position) * fleeingWeight;
+                else
+                {
+                    //return back to wandering
+                    maxSpeed = savedMaxSpeed;
+                    animator.speed = savedAnimSpeed;
+                    state = State.Wander;
+                }
+                goto default;
+
+            default:
+                //avoids trees
+                foreach (Obstacle obs in trees)
+                {
+                    totalForce += AvoidObstacle(obs) * obstacleWeight;
+                }
+
+                //steers towards the center
+                totalForce += SteerInwards() * boundaryWeight;
+                UpdatePosBehind();
+
                 break;
-            default: break;
         }
-
-        position.y = 0;
-
-        timer -= Time.deltaTime;
     }
 
-    private void CheckIfCloseToButterfly()
+    /// <summary>
+    /// Checks if there are humans nearby
+    /// </summary>
+    private void CheckIfCloseToHuman()
     {
-        //check for butterflies
+        foreach (GameObject footmen in humans)
+        {
+            Vector3 dist = footmen.transform.position - nextPos;
+            dist.y = 0;
+            if (dist.sqrMagnitude < fleeRadiusSqr && dist.magnitude < fleeRadius)
+            {
+                state = State.Flee;
+                maxSpeed = savedMaxSpeed * 1.5f;
+                animator.speed = savedAnimSpeed * 1.5f;
+                return;
+            }
+        }
     }
 
+    /// <summary>
+    /// Updates the pos behind leader
+    /// </summary>
     private void UpdatePosBehind()
     {
-        followingPos = Vector3.Lerp(followingPos, position - transform.forward * 3f, Time.deltaTime * 5);
+        followingPos = Vector3.Lerp(followingPos, position - transform.forward * 2f, Time.deltaTime * 5);
         //followingPos.y = terrainData.GetHeight((int)(followingPos.x * terrainData.heightmapResolution / terrainData.size.x),
         //    (int)(followingPos.z * terrainData.heightmapResolution / terrainData.size.z));
         followingPos.y = 0;
     }
 
+    /*
     protected override void OnRenderObject()
     {
         base.OnRenderObject();
@@ -139,4 +215,5 @@ public class Leader : VehicleMovement
         }
         GL.End();
     }
+    */
 }
