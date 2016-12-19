@@ -67,7 +67,7 @@ public class FlockerManager : AgentManager
         flock = new Flocker[flockCount];
         for (int i = 0; i < flockCount; i++)
         {
-            flock[i] = ((GameObject)Instantiate(agentPrefab, Vector3.one * i, Quaternion.identity)).GetComponent<Flocker>();
+            flock[i] = (Instantiate(agentPrefab, new Vector3(Random.Range(0, maxBounds.x), i,Random.Range(0, maxBounds.z)), Quaternion.identity)).GetComponent<Flocker>();
             flock[i].Initialize(this, minBounds, maxBounds, terrainData);
         }
 

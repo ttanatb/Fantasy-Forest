@@ -13,7 +13,7 @@ public abstract class AgentManager : MonoBehaviour
     // Use this for initialization
     protected virtual void Start()
     {
-        terrainData = FindObjectOfType<Terrain>().terrainData;
+        terrainData = GameObject.Find("Terrain").GetComponent<Terrain>().terrainData;
         minBounds = Vector3.zero;
         maxBounds = terrainData.size;
     }

@@ -51,4 +51,9 @@ public class PathVertex : MonoBehaviour
         GetComponent<MeshRenderer>().enabled = false;
         radiusSqr = Mathf.Pow(radius, 2);
     }
+
+    private void Update()
+    {
+        Debug.DrawLine(Position, nextVertex.Position);
+    }
 }

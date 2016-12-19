@@ -206,8 +206,9 @@ public class Leader : VehicleMovement
     public void Die()
     {
         animator.SetTrigger("Die");
-        //GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
+        GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
         Destroy(GetComponent<Collider>());
+        gameObject.tag = "Untagged";
         Destroy(this);
     }
 

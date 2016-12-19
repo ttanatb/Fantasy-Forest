@@ -85,7 +85,7 @@ public class Path : MonoBehaviour
             float distMag = distVect.magnitude;
             
             //checks if inside radius, less than threshold and less than min distance
-            if (distMag > vertex.Radius && distMag < 30 && distMag < dist)
+            if (distMag > vertex.Radius && distMag < 20 && distMag < dist)
             {
                 //updates variables accordingly
                 dist = distMag;

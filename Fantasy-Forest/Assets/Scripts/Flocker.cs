@@ -23,7 +23,7 @@ public class Flocker : VehicleMovement
 
     //weights
     public float seekWeight = 2f;
-    public float obstacleWeight = 10f;
+    public float obstacleWeight = 100f;
     public float boundaryWeight = 10;
 
     public float separationWeight = 2;

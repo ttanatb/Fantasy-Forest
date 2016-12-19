@@ -34,6 +34,7 @@ public class PathFollower : VehicleMovement
     protected override void Start()
     {
         path = GameObject.Find("Scene Manager").GetComponent<Path>();
+        radius = 0.5f;
         maxForce = 3f;
         maxSpeed = 1.5f;
         savedMaxSpeed = maxSpeed;
@@ -65,7 +66,7 @@ public class PathFollower : VehicleMovement
                     break;
 
                 distance.y = 0;
-                
+
                 //checks dist
                 if (distance.sqrMagnitude < spiderRadiusSqr && distance.magnitude < spiderSearchRadius)
                 {
@@ -87,7 +88,7 @@ public class PathFollower : VehicleMovement
     /// </summary>
     protected override void CalcSteringForces()
     {
-
+        //print(state);
         //based on each state
         switch (state)
         {
@@ -135,7 +136,7 @@ public class PathFollower : VehicleMovement
                         animator.SetTrigger("attack");
 
                     //checks for closer spider
-                    foreach(GameObject spider in spiders)
+                    foreach (GameObject spider in spiders)
                     {
                         if (spider)
                         {
@@ -171,11 +172,11 @@ public class PathFollower : VehicleMovement
                 totalForce += Seek(returnPos);
 
                 //avoids tree
-                foreach(Obstacle obs in trees)
+                foreach (Obstacle obs in trees)
                 {
                     totalForce += AvoidObstacle(obs) * obstacleWeight;
                 }
-                
+
                 // checks if close enough to path
                 if ((returnPos - position).sqrMagnitude < 5)
                 {
@@ -185,6 +186,5 @@ public class PathFollower : VehicleMovement
                 else CheckNearbySpider();
                 break;
         }
-        print(state + " " + maxSpeed);
     }
 }

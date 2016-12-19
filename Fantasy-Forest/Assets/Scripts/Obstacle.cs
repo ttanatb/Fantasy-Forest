@@ -22,16 +22,16 @@ public class Obstacle : MonoBehaviour
     void Start()
     {
         position = GetComponent<Transform>().TransformPoint(GetComponent<CapsuleCollider>().center);
-        radius = GetComponent<CapsuleCollider>().radius;
+        radius = GetComponent<CapsuleCollider>().radius + .4f;
     }
 
-    private void Update()
-    {
-        for (int i = 0; i < 100; i++)
-        {
-            float a = i / (float)100;
-            float angle = a * Mathf.PI * 2;
-            Debug.DrawLine(Pos, Pos + new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius));
-        }
-    }
+    //private void Update()
+    //{
+    //    for (int i = 0; i < 100; i++)
+    //    {
+    //        float a = i / (float)100;
+    //        float angle = a * Mathf.PI * 2;
+    //        Debug.DrawLine(Pos, Pos + new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius));
+    //    }
+    //}
 }

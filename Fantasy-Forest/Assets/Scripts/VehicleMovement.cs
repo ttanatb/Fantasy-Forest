@@ -192,9 +192,8 @@ public abstract class VehicleMovement : MonoBehaviour
 
 
         //checks if obstacle is in front of vehicle
-        if (Vector3.Dot(distance, transform.forward) < 0)
+        if (Vector3.Dot(obstacle.Pos - position, transform.forward) < 0)
         {
-            print("obstacle behind");
             return Vector3.zero;
         }
 
@@ -320,9 +319,9 @@ public abstract class VehicleMovement : MonoBehaviour
     /// Method to draw debug lines
     /// </summary>
     protected virtual void OnRenderObject()
-    {
-        if (debugMaterial)
-        {
+    {/*
+        //if (debugMaterial)
+        //{
             //{
             //    //draw forward line
             //    debugMaterial.SetPass(0);
@@ -352,6 +351,7 @@ public abstract class VehicleMovement : MonoBehaviour
                 GL.Vertex(nextPos + new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius));
             }
             GL.End();
-        }
+        //}
+        */
     }
 }
